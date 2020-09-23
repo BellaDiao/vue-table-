@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>表格拖动</title>
+		<link rel="stylesheet" href="https://cdn.bootcss.com/iview/3.5.0-rc.1/styles/iview.css">
+		<script src="./jquery.min.js"></script>
+		<script src="./vue.min.js"></script>
+		<script src="https://cdn.bootcss.com/iview/3.5.0-rc.1/iview.min.js"></script>
+		<style>
+			#info {
+				background:#f8f8f9;
+				border: 1px solid #f8f8f9;
+				width: 100px;
+				height: 30px;
+				position: absolute;
+				top: 0;
+				left: 0;
+				display: none;
+			}
+			.no-select-text {
+				user-select: none;
+				-moz-user-select: none;
+				-webkit-user-select: none;
+			}
+			body .ivu-table-header th{
+				cursor: move;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="tableDrop" style="width: 600px;margin: 0 auto;">
+			 <i-table width="500" border ref="currentRowTable" :columns="columns1" :data="data" :draggable="true" @on-drag-drop="onDragDrop"></i-table>
+			<div id="info"></div>
+			<div id="triangle">
+				<div class="arrow arrow-down"></div>
+				<div class="arrow arrow-up"></div>
+			</div>
+		</div>
+	</body>
+	<script >
+		new Vue({
+			el:"#tableDrop",
+			data:{
+				columns1:[
+	            	{
+	            		title:"name",
+	            		key:"name",
+//	            		sortable: true,
+	            	},
+	            	{
+	            		title:"age",
+	            		key:"age",
+//	            		sortable: true,
+	            	},
+	            	{
+	            		title:"address",
+	            		key:"address",
+	            	},
+	            ],
+				data:[
+					{
+						id:"1",
+	                    name: 'John Brown',
+	                    age: 18,
+	                    address: 'New York No. 1 Lake Park'
+	                },
+	                {
+	                	id:"2",
+	                    name: 'Jim Green',
+	                    age: 24,
+	                    address: 'London No. 1 Lake Park'
+	                },
+	                {
+	                	id:"3",
+	                    name: 'Joe Black',
+	                    age: 30,
+	                    address: 'Sydney No. 1 Lake Park'
+	                },
+	                {
+	                	id:"4",
+	                    name: 'Jon Snow',
+	                    age: 26,
+	                    address: 'Ottawa No. 2 Lake Park'
+	                }
+	            ],
+			},
+			methods:{
+				swapArr(arr, index1, index2){
+					//改变数组下面两个元素的位置
+					 arr[index1] = arr.splice(index2, 1, arr[index1])[0];
+   					 return arr;
+				},
+				 onDragDrop(a,b){
+				 	//拖动表格里面的每一行 
+	                console.log(a,b);
+	                this.data=this.swapArr(this.data,a,b);
+	           	}
+			}
+           
+		})
+		$(function(){
+			var w = $('body .ivu-table-header th').width();
+			var h= $('body .ivu-table-header th').height();
+			$('#info').css({
+				'width': w,
+				"height":h
+			});
+			var flag = false;
+			$("body .ivu-table-header th").unbind("mousedown");
+			$('body .ivu-table-header th').mousedown(function() {
+				let startIndex = $(this).index();
+				let endIndex;
+				flag = true;
+				$('#info').css({
+					display: 'block'
+				});
+				$('body').addClass('no-select-text');
+				$('#info').html($(this).html());
+				$(document).mousemove(function(e) {
+					if(flag) {
+						var e = e || window.event;
+						var x = e.clientX + 5 + 'px';
+						var y = e.clientY + 5 + 'px';
+						$('#info').css({
+							left: x,
+							top: y
+						});
+						if(e.preventDefault) {
+							e.preventDefault();
+						}
+						return false;
+					}
+				});
+				$('body .ivu-table-header th').mouseenter(function() {
+					endIndex = $(this).index();
+					var offsetW = 0;
+					var preTd = $(this).prevAll();
+					$.each(preTd, function(id, item) {
+						offsetW += item.offsetWidth;
+					})
+					if(endIndex > startIndex) {
+						offsetW += $(this)["0"].offsetWidth;
+					}
+				});
+				$(document).mouseup(function() {
+					flag = false;
+					$('#info').css({
+						display: 'none'
+					});
+					if(endIndex < startIndex) {
+						$("body .ivu-table-body tr").each(function(i) {
+							$('body .ivu-table-body tr:eq(' + i + ') td:eq(' + endIndex + ')').before($('body .ivu-table-body tr:eq(' + i + ') td:eq(' + startIndex + ')').clone(true));
+							$('body .ivu-table-body tr:eq(' + i + ') td:eq(' + (startIndex + 1) + ')').remove();
+							$('body .ivu-table-header tr:eq(' + i + ') th:eq(' + endIndex + ')').before($('body .ivu-table-header tr:eq(' + i + ') th:eq(' + startIndex + ')').clone(true));
+							$('body .ivu-table-header tr:eq(' + i + ') th:eq(' + (startIndex + 1) + ')').remove();
+						});
+					} else if(endIndex > startIndex) {
+						$("body .ivu-table-body tr").each(function(i) {
+							$('body .ivu-table-body tr:eq(' + i + ') td:eq(' + endIndex + ')').after($('body .ivu-table-body tr:eq(' + i + ') td:eq(' + startIndex + ')').clone(true));
+							$('body .ivu-table-body tr:eq(' + i + ') td:eq(' + (startIndex) + ')').remove();
+							$('body .ivu-table-header tr:eq(' + i + ') th:eq(' + endIndex + ')').after($('body .ivu-table-header tr:eq(' + i + ') th:eq(' + startIndex + ')').clone(true));
+							$('body .ivu-table-header tr:eq(' + i + ') th:eq(' + (startIndex) + ')').remove();
+						});
+					}
+					$(document).unbind("mousemove");
+					$(document).unbind("mouseup");
+					$('body .ivu-table-header th').unbind("mouseenter");
+				});
+			});
+		})
+	</script>
+</html>
